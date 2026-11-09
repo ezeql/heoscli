@@ -1,0 +1,13 @@
+# Binarios compilados
+/heos
+/cmd/heos/heos
+*.exe
+*.test
+*.out
+
+# Entorno / secretos
+.env
+.env.*
+
+# macOS
+.DS_Store
