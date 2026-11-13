@@ -1,76 +1,79 @@
 package heos
 
-// CLI port for HEOS protocol.
+// CLIPort is the TCP port of the HEOS CLI protocol.
 const CLIPort = 1255
 
 // Attribute names (HEOS CLI query keys).
 const (
-	AttrAddCriteriaID     = "aid"
-	AttrCommand           = "command"
-	AttrContainerID       = "cid"
-	AttrCount             = "count"
-	AttrEnable            = "enable"
-	AttrErrorID           = "eid"
-	AttrMessage           = "message"
-	AttrName              = "name"
-	AttrPassword          = "pw"
-	AttrPayload           = "payload"
-	AttrPlayerID          = "pid"
-	AttrRange             = "range"
-	AttrRefresh           = "refresh"
-	AttrResult            = "result"
-	AttrReturned          = "returned"
-	AttrSearch            = "search"
-	AttrSearchCriteriaID  = "scid"
-	AttrSourceID          = "sid"
-	AttrState             = "state"
-	AttrStep              = "step"
-	AttrURL               = "url"
-	AttrUserName          = "un"
-	AttrLevel             = "level"
-	AttrMediaID           = "mid"
-	AttrHeos              = "heos"
-	AttrSignedIn          = "signed_in"
-	AttrIPAddress         = "ip"
-	AttrModel             = "model"
-	AttrSerial            = "serial"
-	AttrVersion           = "version"
-	AttrType              = "type"
-	AttrImageURL          = "image_url"
-	AttrAlbum             = "album"
-	AttrArtist            = "artist"
-	AttrDuration          = "duration"
-	AttrSong              = "song"
-	AttrStation           = "station"
+	AttrAddCriteriaID    = "aid"
+	AttrCommand          = "command"
+	AttrContainerID      = "cid"
+	AttrCount            = "count"
+	AttrEnable           = "enable"
+	AttrErrorID          = "eid"
+	AttrMessage          = "message"
+	AttrName             = "name"
+	AttrPassword         = "pw"
+	AttrPayload          = "payload"
+	AttrPlayerID         = "pid"
+	AttrRange            = "range"
+	AttrRefresh          = "refresh"
+	AttrResult           = "result"
+	AttrReturned         = "returned"
+	AttrSearch           = "search"
+	AttrSearchCriteriaID = "scid"
+	AttrSourceID         = "sid"
+	AttrState            = "state"
+	AttrStep             = "step"
+	AttrURL              = "url"
+	AttrUserName         = "un"
+	AttrLevel            = "level"
+	AttrMediaID          = "mid"
+	AttrHeos             = "heos"
+	AttrSignedIn         = "signed_in"
+	AttrIPAddress        = "ip"
+	AttrModel            = "model"
+	AttrSerial           = "serial"
+	AttrVersion          = "version"
+	AttrType             = "type"
+	AttrImageURL         = "image_url"
+	AttrAlbum            = "album"
+	AttrArtist           = "artist"
+	AttrDuration         = "duration"
+	AttrSong             = "song"
+	AttrStation          = "station"
 )
 
-// Result value.
+// ValueSuccess is the result of a successful command.
 const ValueSuccess = "success"
 
 // On/off values.
-const ValueOn = "on"
-const ValueOff = "off"
+const (
+	ValueOn  = "on"
+	ValueOff = "off"
+)
 
-// Add to queue criteria (aid).
+// AddCriteriaPlayNow is the add_to_queue criteria (aid) that plays at once.
 const AddCriteriaPlayNow = 1
 
 // Music source IDs (HEOS built-in).
 const (
 	SourceIDSoundCloud = 9
-	SourceIDTidal     = 10
+	SourceIDTidal      = 10
 )
 
-// Search criteria container prefix for add_to_queue (search results).
+// SearchCriteriaTracksPrefix prefixes the container id of search results
+// for add_to_queue.
 const SearchCriteriaTracksPrefix = "SEARCHED_TRACKS-"
 
 // System commands.
 const (
-	CmdAccountCheck             = "system/check_account"
-	CmdSignIn                   = "system/sign_in"
-	CmdSignOut                  = "system/sign_out"
-	CmdRegisterForChangeEvents  = "system/register_for_change_events"
-	CmdHeartBeat                = "system/heart_beat"
-	CmdReboot                   = "system/reboot"
+	CmdAccountCheck            = "system/check_account"
+	CmdSignIn                  = "system/sign_in"
+	CmdSignOut                 = "system/sign_out"
+	CmdRegisterForChangeEvents = "system/register_for_change_events"
+	CmdHeartBeat               = "system/heart_beat"
+	CmdReboot                  = "system/reboot"
 )
 
 // Player commands.

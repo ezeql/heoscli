@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"heoscli/internal/appconfig"
+
+	"github.com/ezeql/heoscli/internal/appconfig"
 )
 
 var newConfigStore = func() (appconfig.Store, error) { return appconfig.NewDefaultStore() }
@@ -56,6 +57,7 @@ func newConfigGetCmd(flags *rootFlags) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			cfg = redactConfig(cfg)
 			if len(args) == 0 {
 				if isJSON(flags) {
 					return writeJSON(cmd, cfg)
@@ -103,6 +105,14 @@ func newConfigSetCmd(flags *rootFlags) *cobra.Command {
 			return writeOK(cmd, flags, "config.set", map[string]any{"key": key})
 		},
 	}
+}
+
+// redactConfig hides the stored password from anything printed.
+func redactConfig(cfg appconfig.Config) appconfig.Config {
+	if cfg.HEOSPassword != "" {
+		cfg.HEOSPassword = "********"
+	}
+	return cfg
 }
 
 func printConfigPlain(cmd *cobra.Command, cfg appconfig.Config) {

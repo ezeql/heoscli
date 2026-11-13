@@ -2,7 +2,8 @@ package cli
 
 import (
 	"github.com/spf13/cobra"
-	"heoscli/internal/heos"
+
+	"github.com/ezeql/heoscli/internal/heos"
 )
 
 func newPlayCmd(flags *rootFlags) *cobra.Command {

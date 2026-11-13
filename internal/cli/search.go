@@ -7,7 +7,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	"heoscli/internal/heos"
+
+	"github.com/ezeql/heoscli/internal/heos"
 )
 
 func newSearchCmd(flags *rootFlags) *cobra.Command {
@@ -51,7 +52,7 @@ func newSearchServiceCmd(flags *rootFlags, use string, sourceID int, label strin
 				return err
 			}
 			defer func() { _ = c.Disconnect() }()
-			if err := c.Connect(ctx); err != nil {
+			if err = c.Connect(ctx); err != nil {
 				return err
 			}
 			criteria, err := c.GetSearchCriteria(ctx, sourceID)

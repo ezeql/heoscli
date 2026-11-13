@@ -3,8 +3,10 @@ package heos
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +17,7 @@ type Client struct {
 	Host    string
 	Timeout time.Duration
 	conn    net.Conn
+	r       *bufio.Reader // lives as long as conn: bytes past a response are kept
 	mu      sync.Mutex
 }
 
@@ -34,12 +37,21 @@ func (c *Client) Connect(ctx context.Context) error {
 		return nil
 	}
 	dialer := net.Dialer{Timeout: c.Timeout}
-	conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(c.Host, fmt.Sprintf("%d", CLIPort)))
+	conn, err := dialer.DialContext(ctx, "tcp", hostAddr(c.Host))
 	if err != nil {
 		return fmt.Errorf("heos connect: %w", err)
 	}
 	c.conn = conn
+	c.r = bufio.NewReader(conn)
 	return nil
+}
+
+// hostAddr appends the CLI port unless host already carries one.
+func hostAddr(host string) string {
+	if _, _, err := net.SplitHostPort(host); err == nil {
+		return host
+	}
+	return net.JoinHostPort(host, strconv.Itoa(CLIPort))
 }
 
 // Disconnect closes the connection.
@@ -55,11 +67,11 @@ func (c *Client) Disconnect() error {
 }
 
 // Command sends a HEOS command and returns the parsed response and message map. Caller must not be holding c.mu.
-func (c *Client) Command(ctx context.Context, command string, params map[string]string) (*HeosResponse, map[string]string, error) {
+func (c *Client) Command(ctx context.Context, command string, params map[string]string) (*Response, map[string]string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.conn == nil {
-		return nil, nil, fmt.Errorf("heos: not connected")
+		return nil, nil, errors.New("heos: not connected")
 	}
 	line := EncodeCommand(command, params)
 	line = strings.TrimSuffix(line, separator)
@@ -75,9 +87,8 @@ func (c *Client) Command(ctx context.Context, command string, params map[string]
 	if err := c.conn.SetReadDeadline(deadline); err != nil {
 		return nil, nil, err
 	}
-	br := bufio.NewReader(c.conn)
 	for {
-		readLine, err := br.ReadString('\n')
+		readLine, err := c.r.ReadString('\n')
 		if err != nil {
 			_ = c.conn.Close()
 			c.conn = nil

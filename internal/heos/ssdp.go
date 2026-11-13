@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"net"
 	"net/url"
 	"strings"
@@ -49,7 +50,7 @@ func ssdpDiscover(ctx context.Context, timeout time.Duration) ([]ssdpResult, err
 	defer func() { _ = conn.Close() }()
 
 	dst := &net.UDPAddr{IP: net.ParseIP("239.255.255.250"), Port: 1900}
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		if _, err := conn.WriteToUDP([]byte(payload), dst); err != nil {
 			return nil, err
 		}
@@ -69,7 +70,7 @@ loop:
 		_ = conn.SetReadDeadline(ssdpNow().Add(200 * time.Millisecond))
 		n, _, err := conn.ReadFromUDP(buf)
 		if err != nil {
-			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+			if nerr, ok := errors.AsType[net.Error](err); ok && nerr.Timeout() {
 				continue
 			}
 			break loop

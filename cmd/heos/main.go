@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"heoscli/internal/cli"
+	"github.com/ezeql/heoscli/internal/cli"
 )
 
 func main() {

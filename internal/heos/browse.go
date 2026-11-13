@@ -3,27 +3,29 @@ package heos
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
+	"unicode/utf8"
 )
 
 // MusicSource is a music source from get_music_sources.
 type MusicSource struct {
-	SID              int    `json:"sid"`
-	Name             string `json:"name"`
-	Type             string `json:"type"`
-	Available        bool   `json:"available"`
-	ImageURL         string `json:"image_url,omitempty"`
-	ServiceUsername  string `json:"service_username,omitempty"`
+	SID             int    `json:"sid"`
+	Name            string `json:"name"`
+	Type            string `json:"type"`
+	Available       bool   `json:"available"`
+	ImageURL        string `json:"image_url,omitempty"`
+	ServiceUsername string `json:"service_username,omitempty"`
 }
 
 // SearchCriteria is one search criterion from get_search_criteria.
 type SearchCriteria struct {
-	Name      string `json:"name"`
-	Scid      int    `json:"scid"`
-	Wildcard  string `json:"wildcard,omitempty"`
-	Cid       string `json:"cid,omitempty"`
-	Playable  string `json:"playable,omitempty"`
+	Name     string `json:"name"`
+	Scid     int    `json:"scid"`
+	Wildcard string `json:"wildcard,omitempty"`
+	Cid      string `json:"cid,omitempty"`
+	Playable string `json:"playable,omitempty"`
 }
 
 // MediaItem is a search or browse result item (song, album, etc.).
@@ -44,12 +46,12 @@ type MediaItem struct {
 
 // SearchResult holds search response and items.
 type SearchResult struct {
-	SourceID   int          `json:"-"`
-	Scid       int          `json:"-"`
-	Search     string       `json:"-"`
-	Returned   int          `json:"-"`
-	Count      int          `json:"-"`
-	Items      []MediaItem  `json:"items"`
+	SourceID   int             `json:"-"`
+	Scid       int             `json:"-"`
+	Search     string          `json:"-"`
+	Returned   int             `json:"-"`
+	Count      int             `json:"-"`
+	Items      []MediaItem     `json:"items"`
 	RawPayload json.RawMessage `json:"-"` // optional: raw payload for debugging
 }
 
@@ -76,7 +78,7 @@ func (c *Client) GetMusicSources(ctx context.Context, refresh bool) ([]MusicSour
 		return nil, fmt.Errorf("parse get_music_sources payload: %w", err)
 	}
 	for _, m := range raw {
-		sid, _ := toInt(m["sid"])
+		sid := toInt(m["sid"])
 		av, _ := m["available"].(string)
 		list = append(list, MusicSource{
 			SID:             sid,
@@ -110,7 +112,7 @@ func (c *Client) GetSearchCriteria(ctx context.Context, sourceID int) ([]SearchC
 	}
 	var list []SearchCriteria
 	for _, m := range raw {
-		scid, _ := toInt(m["scid"])
+		scid := toInt(m["scid"])
 		list = append(list, SearchCriteria{
 			Name:     getStr(m, "name"),
 			Scid:     scid,
@@ -128,10 +130,10 @@ func (c *Client) Search(ctx context.Context, sourceID int, search string, criter
 		return nil, err
 	}
 	if search == "" {
-		return nil, fmt.Errorf("search query must not be empty")
+		return nil, errors.New("search query must not be empty")
 	}
-	if len(search) > 128 {
-		return nil, fmt.Errorf("search query must be at most 128 characters")
+	if utf8.RuneCountInString(search) > 128 {
+		return nil, errors.New("search query must be at most 128 characters")
 	}
 	params := map[string]string{
 		AttrSourceID:         strconv.Itoa(sourceID),
@@ -231,10 +233,10 @@ func (c *Client) AddToQueue(ctx context.Context, playerID int, sourceID int, con
 		return err
 	}
 	params := map[string]string{
-		AttrPlayerID:        strconv.Itoa(playerID),
-		AttrSourceID:        strconv.Itoa(sourceID),
-		AttrContainerID:     containerID,
-		AttrAddCriteriaID:   strconv.Itoa(addCriteria),
+		AttrPlayerID:      strconv.Itoa(playerID),
+		AttrSourceID:      strconv.Itoa(sourceID),
+		AttrContainerID:   containerID,
+		AttrAddCriteriaID: strconv.Itoa(addCriteria),
 	}
 	if mediaID != "" {
 		params[AttrMediaID] = mediaID
@@ -248,16 +250,17 @@ func getStr(m map[string]any, key string) string {
 	return v
 }
 
-func toInt(v any) (int, bool) {
+// toInt reads a JSON number or numeric string; anything else is 0.
+func toInt(v any) int {
 	switch x := v.(type) {
 	case float64:
-		return int(x), true
+		return int(x)
 	case int:
-		return x, true
+		return x
 	case string:
-		n, err := strconv.Atoi(x)
-		return n, err == nil
+		n, _ := strconv.Atoi(x)
+		return n
 	default:
-		return 0, false
+		return 0
 	}
 }

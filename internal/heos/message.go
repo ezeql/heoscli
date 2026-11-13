@@ -12,12 +12,12 @@ const (
 	separator = "\r\n"
 )
 
-// HeosResponse is a parsed response from the HEOS device.
-type HeosResponse struct {
-	Command string            `json:"command"`
-	Result  string            `json:"result"`
-	Message string            `json:"message"`
-	Payload json.RawMessage   `json:"payload,omitempty"`
+// Response is a parsed response from the HEOS device.
+type Response struct {
+	Command string          `json:"command"`
+	Result  string          `json:"result"`
+	Message string          `json:"message"`
+	Payload json.RawMessage `json:"payload,omitempty"`
 }
 
 // rawHeosMessage is the JSON envelope from the device.
@@ -71,6 +71,9 @@ func quoteValue(s string) string {
 			b.WriteString("%3D")
 		case '%':
 			b.WriteString("%25")
+		case '\r', '\n':
+			// A line break would end this command and start another one.
+			b.WriteByte(' ')
 		default:
 			b.WriteRune(r)
 		}
@@ -78,14 +81,14 @@ func quoteValue(s string) string {
 	return b.String()
 }
 
-// ParseResponse parses a single line (without \r\n) into HeosResponse and message key=value map.
-func ParseResponse(line string) (*HeosResponse, map[string]string, error) {
+// ParseResponse parses a single line (without \r\n) into Response and message key=value map.
+func ParseResponse(line string) (*Response, map[string]string, error) {
 	var raw rawHeosMessage
 	if err := json.Unmarshal([]byte(line), &raw); err != nil {
 		return nil, nil, err
 	}
 	msgMap := parseMessageQuery(raw.Heos.Message)
-	r := &HeosResponse{
+	r := &Response{
 		Command: raw.Heos.Command,
 		Result:  raw.Heos.Result,
 		Message: raw.Heos.Message,
@@ -113,6 +116,6 @@ func parseMessageQuery(s string) map[string]string {
 }
 
 // Success returns true if result is success.
-func (r *HeosResponse) Success() bool {
+func (r *Response) Success() bool {
 	return r.Result == ValueSuccess
 }

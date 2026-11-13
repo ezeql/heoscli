@@ -23,10 +23,22 @@ func newStatusCmd(flags *rootFlags) *cobra.Command {
 			}
 			defer func() { _ = c.Disconnect() }()
 
-			state, _ := c.GetPlayState(ctx, pid)
-			np, _ := c.GetNowPlayingMedia(ctx, pid)
-			vol, _ := c.GetVolume(ctx, pid)
-			mute, _ := c.GetMute(ctx, pid)
+			state, err := c.GetPlayState(ctx, pid)
+			if err != nil {
+				return err
+			}
+			np, err := c.GetNowPlayingMedia(ctx, pid)
+			if err != nil {
+				return err
+			}
+			vol, err := c.GetVolume(ctx, pid)
+			if err != nil {
+				return err
+			}
+			mute, err := c.GetMute(ctx, pid)
+			if err != nil {
+				return err
+			}
 
 			out := map[string]any{
 				"playerId": pid,

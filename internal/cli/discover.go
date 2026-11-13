@@ -6,7 +6,8 @@ import (
 	"sort"
 
 	"github.com/spf13/cobra"
-	"heoscli/internal/heos"
+
+	"github.com/ezeql/heoscli/internal/heos"
 )
 
 func newDiscoverCmd(flags *rootFlags) *cobra.Command {

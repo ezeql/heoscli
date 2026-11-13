@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -10,14 +11,14 @@ import (
 // Skips blank lines and # comments. Does not override existing env vars.
 // Returns nil if the file does not exist.
 func loadDotEnv(path string) error {
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if os.IsNotExist(err) {
 		return nil
 	}
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {

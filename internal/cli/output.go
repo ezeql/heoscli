@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"errors"
+	"maps"
 
 	"github.com/spf13/cobra"
 )
@@ -39,8 +40,6 @@ func writeOK(cmd *cobra.Command, flags *rootFlags, action string, extra map[stri
 		"ok":     true,
 		"action": action,
 	}
-	for k, v := range extra {
-		out[k] = v
-	}
+	maps.Copy(out, extra)
 	return writeJSON(cmd, out)
 }

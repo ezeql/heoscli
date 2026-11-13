@@ -5,7 +5,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	"heoscli/internal/heos"
+
+	"github.com/ezeql/heoscli/internal/heos"
 )
 
 func newQueueCmd(flags *rootFlags) *cobra.Command {

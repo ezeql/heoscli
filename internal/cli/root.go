@@ -3,12 +3,16 @@ package cli
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
-	"heoscli/internal/appconfig"
-	"heoscli/internal/heos"
+
+	"github.com/ezeql/heoscli/internal/appconfig"
+	"github.com/ezeql/heoscli/internal/heos"
 )
 
 type rootFlags struct {
@@ -20,8 +24,10 @@ type rootFlags struct {
 	Debug   bool
 }
 
-var newHeosClient = heos.NewClient
-var heosDiscover = heos.Discover
+var (
+	newHeosClient = heos.NewClient
+	heosDiscover  = heos.Discover
+)
 
 var loadAppConfig = func() (appconfig.Config, error) {
 	s, err := appconfig.NewDefaultStore()
@@ -31,10 +37,13 @@ var loadAppConfig = func() (appconfig.Config, error) {
 	return s.Load()
 }
 
+// Execute runs the heos command line.
 func Execute() error {
 	_ = loadDotEnv(".env")
-	rootCmd, _, err := newRootCmd()
+	rootCmd, err := newRootCmd()
 	if err != nil {
+		// cobra has not started, so nothing else would print it.
+		_, _ = fmt.Fprintln(os.Stderr, "Error:", err)
 		return err
 	}
 	ctx := context.Background()
@@ -42,21 +51,21 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
-func newRootCmd() (*cobra.Command, *rootFlags, error) {
+func newRootCmd() (*cobra.Command, error) {
 	flags := &rootFlags{}
 	cfg, err := loadAppConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	cfg = cfg.Normalize()
 
 	rootCmd := &cobra.Command{
-		Use:     "heos",
-		Short:   "Control HEOS devices from the command line",
-		Long:    "Control HEOS devices over the local network: discover devices, sign in, search Tidal/SoundCloud, play and control playback.",
-		Example: "  heos discover\n  heos status --name \"Living Room\"\n  heos search tidal \"artist\" --play\n  heos play --name \"Living Room\"",
+		Use:          "heos",
+		Short:        "Control HEOS devices from the command line",
+		Long:         "Control HEOS devices over the local network: discover devices, sign in, search Tidal/SoundCloud, play and control playback.",
+		Example:      "  heos discover\n  heos status --name \"Living Room\"\n  heos search tidal \"artist\" --play\n  heos play --name \"Living Room\"",
 		SilenceUsage: true,
-		Version: Version,
+		Version:      Version,
 	}
 	rootCmd.SetVersionTemplate("heos {{.Version}}\n")
 
@@ -103,7 +112,7 @@ func newRootCmd() (*cobra.Command, *rootFlags, error) {
 	rootCmd.AddCommand(newSignOutCmd(flags))
 	rootCmd.AddCommand(newConfigCmd(flags))
 
-	return rootCmd, flags, nil
+	return rootCmd, nil
 }
 
 func validateTarget(flags *rootFlags) error {
@@ -152,7 +161,7 @@ func resolvePlayerID(ctx context.Context, flags *rootFlags) (*heos.Client, int, 
 	if err != nil {
 		return nil, 0, err
 	}
-	if err := c.Connect(ctx); err != nil {
+	if err = c.Connect(ctx); err != nil {
 		return nil, 0, err
 	}
 	players, err := c.GetPlayers(ctx)
@@ -162,14 +171,27 @@ func resolvePlayerID(ctx context.Context, flags *rootFlags) (*heos.Client, int, 
 	if len(players) == 0 {
 		return nil, 0, errors.New("no players on device")
 	}
-	name := strings.TrimSpace(flags.Name)
-	if flags.IP != "" && name == "" {
-		return c, players[0].PID, nil
+	// get_players lists every player in the system, not just the one at the
+	// address we dialed: --ip picks the player at that IP, --name by name.
+	if flags.IP != "" {
+		ip := flags.IP
+		if host, _, splitErr := net.SplitHostPort(ip); splitErr == nil {
+			ip = host
+		}
+		for _, p := range players {
+			if p.IP == ip {
+				return c, p.PID, nil
+			}
+		}
+		_ = c.Disconnect()
+		return nil, 0, errors.New("no player at " + flags.IP)
 	}
+	name := strings.TrimSpace(flags.Name)
 	for _, p := range players {
-		if strings.EqualFold(strings.TrimSpace(p.Name), name) || (name != "" && p.IP == flags.IP) {
+		if strings.EqualFold(strings.TrimSpace(p.Name), name) {
 			return c, p.PID, nil
 		}
 	}
-	return c, players[0].PID, nil
+	_ = c.Disconnect()
+	return nil, 0, errors.New("no player named " + flags.Name)
 }

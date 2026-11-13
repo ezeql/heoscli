@@ -72,6 +72,7 @@ func NewDefaultStore() (*FileStore, error) {
 	return &FileStore{path: filepath.Join(dir, "heoscli", "config.json")}, nil
 }
 
+// Path returns the config file location.
 func (s *FileStore) Path() string { return s.path }
 
 type fileFormat struct {

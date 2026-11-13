@@ -100,24 +100,26 @@ func enrichDeviceNames(ctx context.Context, devs []Device, timeout time.Duration
 	if len(devs) == 0 {
 		return
 	}
-	enrichTimeout := 2 * time.Second
-	if timeout < enrichTimeout {
-		enrichTimeout = timeout
-	}
+	enrichTimeout := min(timeout, 2*time.Second)
 	type result struct {
 		index int
 		name  string
 	}
 	ch := make(chan result, len(devs))
 	for i := range devs {
-		i := i
 		go func() {
 			name := devs[i].IP
 			c := NewClient(devs[i].IP, enrichTimeout)
 			info, err := c.GetSystemInfo(ctx)
 			_ = c.Disconnect()
-			if err == nil && len(info.Players) > 0 && info.Players[0].Name != "" {
-				name = strings.TrimSpace(info.Players[0].Name)
+			// get_players lists the whole system; pick the player at this IP.
+			if err == nil {
+				for _, p := range info.Players {
+					if p.IP == devs[i].IP && strings.TrimSpace(p.Name) != "" {
+						name = strings.TrimSpace(p.Name)
+						break
+					}
+				}
 			}
 			ch <- result{index: i, name: name}
 		}()
@@ -139,7 +141,7 @@ func scanPort1255(ctx context.Context, timeout time.Duration) (string, error) {
 	workers := 64
 	var wg sync.WaitGroup
 	wg.Add(workers)
-	for i := 0; i < workers; i++ {
+	for range workers {
 		go func() {
 			defer wg.Done()
 			for ip := range candidateIPs {

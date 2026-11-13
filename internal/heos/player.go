@@ -87,7 +87,7 @@ func (c *Client) GetNowPlayingMedia(ctx context.Context, playerID int) (*NowPlay
 	out.Artist = getStr(raw, "artist")
 	out.ImageURL = getStr(raw, "image_url")
 	out.MediaID = getStr(raw, "mid")
-	out.QueueID, _ = toInt(raw["qid"])
+	out.QueueID = toInt(raw["qid"])
 	out.Quality = getStr(raw, "quality")
 	if out.Quality == "" {
 		out.Quality = getStr(raw, "audio_quality")
@@ -130,7 +130,8 @@ func (c *Client) GetQueue(ctx context.Context, playerID int, start, count int) (
 		AttrPlayerID: strconv.Itoa(playerID),
 	}
 	if count > 0 {
-		params[AttrRange] = fmt.Sprintf("%d,%d", start, count)
+		// The range is inclusive: start,end.
+		params[AttrRange] = fmt.Sprintf("%d,%d", start, start+count-1)
 	}
 	resp, _, err := c.Command(ctx, CmdGetQueue, params)
 	if err != nil {
@@ -145,8 +146,8 @@ func (c *Client) GetQueue(ctx context.Context, playerID int, start, count int) (
 		return nil, fmt.Errorf("parse get_queue payload: %w", err)
 	}
 	for _, m := range raw {
-		qid, _ := toInt(m["qid"])
-		sid, _ := toInt(m["sid"])
+		qid := toInt(m["qid"])
+		sid := toInt(m["sid"])
 		name := getStr(m, "name")
 		if name == "" {
 			name = getStr(m, "song")
@@ -203,7 +204,7 @@ func (c *Client) SetVolume(ctx context.Context, playerID int, level int) error {
 		return err
 	}
 	if level < 0 || level > 100 {
-		return nil
+		return fmt.Errorf("volume %d out of range 0-100", level)
 	}
 	_, _, err := c.Command(ctx, CmdSetVolume, map[string]string{
 		AttrPlayerID: strconv.Itoa(playerID),

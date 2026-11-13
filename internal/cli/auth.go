@@ -2,7 +2,9 @@ package cli
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -26,14 +28,19 @@ func readPasswordFromStdin() (string, error) {
 		}
 		return strings.TrimSpace(string(b)), nil
 	}
-	sc := bufio.NewScanner(os.Stdin)
-	if !sc.Scan() {
-		if err := sc.Err(); err != nil {
-			return "", err
-		}
-		return "", nil
+	return readLine()
+}
+
+// stdin is shared by every prompt: a reader per prompt would buffer past its
+// own line and swallow the next answer when input is piped.
+var stdin = bufio.NewReader(os.Stdin)
+
+func readLine() (string, error) {
+	line, err := stdin.ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return "", err
 	}
-	return strings.TrimSpace(sc.Text()), nil
+	return strings.TrimSpace(line), nil
 }
 
 // readLineFromStdin reads a single line from stdin (echoed). Use for username.
@@ -41,14 +48,7 @@ func readLineFromStdin(prompt string) (string, error) {
 	if prompt != "" {
 		_, _ = fmt.Fprint(os.Stderr, prompt)
 	}
-	sc := bufio.NewScanner(os.Stdin)
-	if !sc.Scan() {
-		if err := sc.Err(); err != nil {
-			return "", err
-		}
-		return "", nil
-	}
-	return strings.TrimSpace(sc.Text()), nil
+	return readLine()
 }
 
 func newSignInCmd(flags *rootFlags) *cobra.Command {
@@ -83,7 +83,7 @@ func newSignInCmd(flags *rootFlags) *cobra.Command {
 					return err
 				}
 				if username == "" {
-					return fmt.Errorf("username is required")
+					return errors.New("username is required")
 				}
 			}
 			if password == "" {
@@ -95,7 +95,7 @@ func newSignInCmd(flags *rootFlags) *cobra.Command {
 					return err
 				}
 				if password == "" {
-					return fmt.Errorf("password is required")
+					return errors.New("password is required")
 				}
 			}
 			ctx := cmd.Context()
